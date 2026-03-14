@@ -1,0 +1,127 @@
+---
+description: React and Next.js component development rules
+globs: "apps/{web,admin}/**/*.{tsx,jsx,ts,js}"
+---
+
+# React & Next.js Component Rules
+
+## Component Structure
+
+- Functional components only — no class components.
+- Props defined as TypeScript interfaces, co-located with the component.
+- Export the component as a named export (not default), except for Next.js page/layout files.
+
+```typescript
+interface LocationCardProps {
+  id: string;
+  name: string;
+  address: string;
+  score: number;
+  onSelect?: (id: string) => void;
+}
+
+export function LocationCard({ id, name, address, score, onSelect }: LocationCardProps) {
+  return ( ... );
+}
+```
+
+## Server vs Client Components
+
+- **Server Components by default** — no directive needed.
+- Add `'use client'` only when the component uses:
+  - React hooks (`useState`, `useEffect`, `useRef`, etc.)
+  - Browser APIs (`window`, `document`, `localStorage`)
+  - Event handlers (`onClick`, `onChange`, etc.)
+  - Third-party client-only libraries (MapLibre, Zustand stores)
+- Keep client component boundaries as small as possible — extract interactive parts into separate client components rather than making an entire page client-side.
+
+## Data Fetching
+
+- **Server Components**: use `fetch` or direct Prisma calls in server actions.
+- **Client Components**: use TanStack Query with typed query keys.
+
+```typescript
+const locationKeys = {
+  all: ['locations'] as const,
+  detail: (id: string) => ['locations', id] as const,
+  nearby: (lat: number, lng: number, radius: number) =>
+    ['locations', 'nearby', { lat, lng, radius }] as const,
+};
+
+export function useLocation(id: string) {
+  return useQuery({
+    queryKey: locationKeys.detail(id),
+    queryFn: () => api.locations.getById(id),
+  });
+}
+```
+
+## State Management
+
+- **Zustand** for global/cross-component state (user preferences, active filters, map viewport).
+- **React state** (`useState`, `useReducer`) for local UI state.
+- **TanStack Query** for server/async state — do not duplicate server state into Zustand.
+- **URL state** (search params) for shareable/bookmarkable state (filters, pagination, selected location).
+
+## Styling
+
+- **Tailwind CSS** as the primary styling approach.
+- **CSS Modules** when component-scoped styles are needed or for complex animations.
+- Use Tailwind's `cn()` utility (or `clsx`) for conditional class composition.
+- Responsive design: mobile-first breakpoints (`sm:`, `md:`, `lg:`).
+
+## Accessibility
+
+- All interactive elements must have `aria-label` or `aria-labelledby`.
+- Use semantic HTML elements (`button`, `nav`, `main`, `section`, `article`).
+- Support keyboard navigation — all clickable elements must be focusable.
+- Color contrast must meet WCAG 2.1 AA standards.
+- Form fields must have associated `<label>` elements.
+
+## Internationalization (i18n)
+
+- Use `next-intl` for translations.
+- All user-facing strings must use translation keys — never hardcode display text.
+- Translation keys are structured as `namespace.key` (e.g., `location.walkabilityScore`).
+- Support `sr-Latn` (default), `sr-Cyrl`, `en`, `ru`.
+
+```typescript
+import { useTranslations } from 'next-intl';
+
+export function LocationScore({ score }: { score: number }) {
+  const t = useTranslations('location');
+  return <span>{t('walkabilityScore')}: {score}</span>;
+}
+```
+
+## Maps
+
+- Use **MapLibre GL JS** for all map rendering.
+- Map components are always client components (`'use client'`).
+- Prefer vector tiles for base maps.
+- Use GeoJSON sources for dynamic data layers.
+
+## Forms
+
+- Validate with Zod schemas from `@uvidai/shared` before submission.
+- Use controlled components with React state or a form library (React Hook Form).
+- Show inline validation errors.
+- Disable submit button while submitting, show loading state.
+
+## Performance
+
+- Use `React.memo` only when profiling confirms unnecessary re-renders.
+- Lazy-load heavy components with `React.lazy` or Next.js `dynamic()`.
+- Optimize images with Next.js `<Image>` component.
+- Virtualize long lists with TanStack Virtual or similar.
+
+## File Organization
+
+```
+components/
+  location-card/
+    location-card.tsx        — Component implementation
+    location-card.spec.tsx   — Tests
+    location-card.module.css — Scoped styles (if needed)
+    index.ts                 — Re-export
+```

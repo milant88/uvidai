@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "UvidAI",
+    "slug": "uvidai",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "uvidai",
+    "plugins": ["expo-router"],
+    "ios": {
+      "bundleIdentifier": "rs.uvidai.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "rs.uvidai.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a1628"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

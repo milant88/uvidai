@@ -1,0 +1,161 @@
+---
+description: AI agent development rules for packages/ai-core and AI-related code
+globs: "packages/ai-core/**/*.ts,apps/api/src/**/ai/**/*.ts,apps/api/src/**/agent*/**/*.ts,docs/prompts/**/*.md"
+---
+
+# AI Agent Development Rules
+
+## Provider Abstraction
+
+All AI provider calls (OpenAI, Google Gemini, Anthropic) must go through `packages/ai-core`. Never import provider SDKs directly in application code.
+
+```typescript
+// Correct — use ai-core abstraction
+import { createCompletion, AgentConfig } from '@uvidai/ai-core';
+
+// Wrong — direct SDK usage in app code
+import OpenAI from 'openai'; // ❌
+```
+
+## Agent Configuration
+
+Temperature, model, and provider are configurable per agent type. Define agent configs as typed objects:
+
+```typescript
+import { z } from 'zod';
+
+export const agentConfigSchema = z.object({
+  provider: z.enum(['openai', 'gemini', 'anthropic']),
+  model: z.string(),
+  temperature: z.number().min(0).max(2),
+  maxTokens: z.number().positive(),
+  systemPromptPath: z.string(),
+});
+
+export type AgentConfig = z.infer<typeof agentConfigSchema>;
+```
+
+## Prompt Management
+
+- Store all agent prompts as markdown files in `docs/prompts/`.
+- Name prompt files descriptively: `location-analyst.md`, `legal-checker.md`, `lifestyle-scorer.md`.
+- Load prompts at runtime — never hardcode prompt text in source code.
+- Prompts can include template variables using `{{variableName}}` syntax, replaced at runtime.
+
+```
+docs/prompts/
+  location-analyst.md      — Main location analysis agent
+  legal-checker.md         — APR/cadastre legal status checker
+  lifestyle-scorer.md      — Walkability and lifestyle scoring
+  eco-context.md           — Environmental analysis prompt
+  summarizer.md            — Multi-source result summarizer
+```
+
+## Tool / Function Definitions
+
+- Every tool that an AI agent can call must have a Zod schema defining its parameters.
+- Tool implementations must validate inputs against the schema before execution.
+- Tool results must be typed with a response schema.
+
+```typescript
+import { z } from 'zod';
+
+export const searchNearbyToolSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusMeters: z.number().min(100).max(10000),
+  category: z.enum(['school', 'kindergarten', 'healthcare', 'pharmacy', 'transit', 'park']),
+});
+
+export type SearchNearbyParams = z.infer<typeof searchNearbyToolSchema>;
+```
+
+## Streaming Responses
+
+Follow Vercel AI SDK patterns for streaming:
+
+```typescript
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: getModel(agentConfig),
+  system: loadPrompt('location-analyst'),
+  messages,
+  tools: registeredTools,
+});
+
+return result.toDataStreamResponse();
+```
+
+## Cost Tracking
+
+Every AI call must record usage data. Log the following to the `ai_usage` table:
+
+| Field | Description |
+|---|---|
+| `provider` | openai, gemini, anthropic |
+| `model` | Specific model identifier |
+| `input_tokens` | Prompt/input token count |
+| `output_tokens` | Completion/output token count |
+| `latency_ms` | Round-trip time in milliseconds |
+| `agent_type` | Which agent made the call |
+| `user_id` | Requesting user (nullable for system calls) |
+| `session_id` | Conversation session identifier |
+
+```typescript
+await this.usageService.record({
+  provider: config.provider,
+  model: config.model,
+  inputTokens: usage.promptTokens,
+  outputTokens: usage.completionTokens,
+  latencyMs: endTime - startTime,
+  agentType: 'location-analyst',
+  userId: context.userId,
+  sessionId: context.sessionId,
+});
+```
+
+## Message Logging
+
+All AI request/response pairs must be logged to the `messages` table:
+
+- Store the full message history for each conversation session.
+- Include the role (`system`, `user`, `assistant`, `tool`).
+- Store tool calls and their results.
+- Redact any PII before logging if applicable.
+
+## Error Handling
+
+- Wrap all AI calls in retry logic with exponential backoff.
+- Handle provider-specific errors (rate limits, content filters, context length exceeded).
+- Fall back to an alternative provider/model when the primary is unavailable.
+- Never expose raw AI provider errors to the end user — map to user-friendly messages.
+
+```typescript
+try {
+  return await this.aiCore.complete(config, messages);
+} catch (error) {
+  if (isRateLimitError(error)) {
+    return await this.aiCore.complete(fallbackConfig, messages);
+  }
+  throw new InternalServerErrorException('AI service temporarily unavailable');
+}
+```
+
+## Data Connectors Integration
+
+When an AI agent needs external data, it must call through `packages/data-connectors`:
+
+- APR business data → `@uvidai/data-connectors/apr`
+- Spatial/cadastre data → `@uvidai/data-connectors/geosrbija`
+- Air quality → `@uvidai/data-connectors/sepa`
+- Points of interest → `@uvidai/data-connectors/osm`
+
+Never make raw HTTP calls to external APIs from agent code.
+
+## Testing AI Code
+
+- Unit test tool definitions with mock AI responses.
+- Test Zod schemas with edge-case inputs.
+- Integration test full agent flows with recorded/mocked provider responses.
+- Snapshot test prompt templates to catch unintended changes.

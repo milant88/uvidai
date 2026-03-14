@@ -1,0 +1,46 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.valueWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.indicatorBetter {
+  color: var(--success);
+}
+
+.indicatorWorse {
+  color: var(--danger);
+}
+
+.indicatorNeutral {
+  color: var(--text-muted);
+}

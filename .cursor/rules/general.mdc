@@ -1,0 +1,88 @@
+---
+description: General project conventions and monorepo structure for UvidAI
+globs: "**/*.{ts,tsx,js,jsx}"
+---
+
+# UvidAI — General Project Rules
+
+## Project Context
+
+UvidAI is an AI-powered hyper-local intelligence platform for Belgrade and Novi Sad, Serbia. It integrates public data (APR, cadastre, environmental, infrastructure) into conversational AI agents.
+
+## Monorepo Structure
+
+```
+apps/web          — Next.js 16 public app (App Router)
+apps/admin        — Next.js 16 admin dashboard (App Router)
+apps/api          — NestJS 11 backend API
+apps/mobile       — React Native / Expo
+packages/shared   — Shared types, Zod schemas (@uvidai/shared)
+packages/ai-core  — AI provider abstraction layer
+packages/data-connectors — External data source adapters
+packages/i18n     — Internationalization strings
+```
+
+## TypeScript
+
+- Strict mode enabled. Never use `any` — use `unknown` with type narrowing or Zod.
+- Prefer `interface` for object shapes, `type` for unions/intersections.
+
+## Naming
+
+- Files: `kebab-case` (e.g., `user-profile.service.ts`)
+- Components/classes: `PascalCase`
+- Functions/variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+
+## Imports
+
+- Shared types: always `import { ... } from '@uvidai/shared'` — never duplicate types across apps.
+- Zod schemas: `import { ... } from '@uvidai/shared/validation'` or the specific schema file.
+- Order: node builtins → external packages → `@uvidai/*` → relative. Blank line between groups.
+
+## App-Specific Patterns
+
+### apps/web and apps/admin (Next.js 16)
+- Use App Router patterns (file-based routing in `app/` directory).
+- Server Components by default — only add `'use client'` when hooks or browser APIs are required.
+- Data fetching: TanStack Query for client-side, `fetch` in Server Components.
+- Styling: Tailwind CSS primary, CSS Modules when scoped styles are needed.
+- Maps: MapLibre GL JS for all map rendering.
+- Translations: next-intl — all user-facing strings use i18n keys from `packages/i18n`.
+
+### apps/api (NestJS 11)
+- Module/Controller/Service pattern — each feature is a separate NestJS module.
+- Prisma ORM for database access; raw SQL only for PostGIS/pgvector operations.
+- DTOs validated with class-validator and class-transformer.
+- Every endpoint must have OpenAPI decorators.
+- Error handling through exception filters, not try/catch in controllers.
+
+### packages/shared
+- Contains only types, interfaces, enums, Zod schemas, and pure utility functions.
+- No runtime dependencies on any app — this package must remain framework-agnostic.
+
+## Architecture Rules
+
+1. All AI/LLM calls go through `packages/ai-core` — never import provider SDKs in app code.
+2. All external data fetching goes through `packages/data-connectors`.
+3. All shared types live in `packages/shared` — no type duplication across apps.
+4. All user-facing strings use i18n keys — no hardcoded text.
+
+## Validation
+
+- Zod schemas in `packages/shared/src/validation/` for runtime validation.
+- class-validator on NestJS DTOs for API input validation.
+- Frontend forms validate with Zod before submission.
+
+## State Management
+
+- Zustand for global/cross-component state.
+- React `useState` / `useReducer` for local component state.
+- TanStack Query for server state (caching, refetching, optimistic updates).
+
+## Security
+
+- Never commit secrets — use `.env` files (gitignored).
+- Sanitize user input before database queries.
+- Rate limiting via `@nestjs/throttler` on public API endpoints.
+- Auth tokens in HTTP-only cookies.

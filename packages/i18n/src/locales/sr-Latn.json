@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "home": "Početna",
+    "map": "Mapa",
+    "chat": "Ćaskanje",
+    "profile": "Profil",
+    "settings": "Podešavanja"
+  },
+  "common": {
+    "search": "Pretraži",
+    "loading": "Učitavanje…",
+    "error": "Greška",
+    "save": "Sačuvaj",
+    "cancel": "Otkaži",
+    "submit": "Pošalji",
+    "delete": "Obriši",
+    "edit": "Izmeni",
+    "close": "Zatvori",
+    "back": "Nazad",
+    "next": "Dalje",
+    "yes": "Da",
+    "no": "Ne",
+    "ok": "U redu",
+    "retry": "Pokušaj ponovo",
+    "seeMore": "Prikaži više",
+    "noResults": "Nema rezultata"
+  },
+  "modules": {
+    "legal_check": "Pravna čistota",
+    "environment": "Životna sredina",
+    "lifestyle": "Infrastruktura i stil života",
+    "price_radar": "Cenovni radar",
+    "neighborhood_score": "Ocena lokacije",
+    "transport": "Transport",
+    "business_scanner": "Biznis skener",
+    "general": "Opšte"
+  },
+  "chat": {
+    "placeholder": "Pitajte o bilo kojoj lokaciji…",
+    "greeting": "Kako vam mogu pomoći?",
+    "thinking": "Razmišljam…",
+    "errorGeneric": "Došlo je do greške. Pokušajte ponovo.",
+    "newConversation": "Nova konverzacija",
+    "conversationHistory": "Istorija konverzacija"
+  },
+  "location": {
+    "searchPlaceholder": "Unesite adresu ili koordinate…",
+    "currentLocation": "Moja lokacija",
+    "radiusLabel": "Radijus pretrage",
+    "nearbyPois": "Obližnje tačke interesa",
+    "noNearbyPois": "Nema obližnjih tačaka interesa."
+  },
+  "airQuality": {
+    "title": "Kvalitet vazduha",
+    "excellent": "Odličan",
+    "good": "Dobar",
+    "acceptable": "Prihvatljiv",
+    "polluted": "Zagađen",
+    "veryPolluted": "Veoma zagađen",
+    "station": "Stanica",
+    "lastUpdated": "Poslednje ažuriranje"
+  },
+  "feedback": {
+    "rateResponse": "Ocenite odgovor",
+    "helpful": "Korisno",
+    "notHelpful": "Nije korisno",
+    "commentPlaceholder": "Ostavite komentar (opciono)…",
+    "thankYou": "Hvala na povratnoj informaciji!"
+  },
+  "auth": {
+    "signIn": "Prijavite se",
+    "signOut": "Odjavite se",
+    "email": "E-pošta",
+    "password": "Lozinka"
+  },
+  "errors": {
+    "networkError": "Problem sa mrežom. Proverite internet konekciju.",
+    "notFound": "Stranica nije pronađena.",
+    "unauthorized": "Nemate pristup ovom resursu.",
+    "serverError": "Serverska greška. Pokušajte kasnije."
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "home": "Главная",
+    "map": "Карта",
+    "chat": "Чат",
+    "profile": "Профиль",
+    "settings": "Настройки"
+  },
+  "common": {
+    "search": "Поиск",
+    "loading": "Загрузка…",
+    "error": "Ошибка",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "close": "Закрыть",
+    "back": "Назад",
+    "next": "Далее",
+    "yes": "Да",
+    "no": "Нет",
+    "ok": "ОК",
+    "retry": "Повторить",
+    "seeMore": "Показать ещё",
+    "noResults": "Нет результатов"
+  },
+  "modules": {
+    "legal_check": "Юридическая проверка",
+    "environment": "Окружающая среда",
+    "lifestyle": "Инфраструктура и образ жизни",
+    "price_radar": "Ценовой радар",
+    "neighborhood_score": "Оценка района",
+    "transport": "Транспорт",
+    "business_scanner": "Бизнес-сканер",
+    "general": "Общее"
+  },
+  "chat": {
+    "placeholder": "Спросите о любом местоположении…",
+    "greeting": "Чем я могу вам помочь?",
+    "thinking": "Думаю…",
+    "errorGeneric": "Произошла ошибка. Попробуйте ещё раз.",
+    "newConversation": "Новый разговор",
+    "conversationHistory": "История разговоров"
+  },
+  "location": {
+    "searchPlaceholder": "Введите адрес или координаты…",
+    "currentLocation": "Моё местоположение",
+    "radiusLabel": "Радиус поиска",
+    "nearbyPois": "Ближайшие точки интереса",
+    "noNearbyPois": "Нет ближайших точек интереса."
+  },
+  "airQuality": {
+    "title": "Качество воздуха",
+    "excellent": "Отличное",
+    "good": "Хорошее",
+    "acceptable": "Приемлемое",
+    "polluted": "Загрязнённый",
+    "veryPolluted": "Сильно загрязнённый",
+    "station": "Станция",
+    "lastUpdated": "Последнее обновление"
+  },
+  "feedback": {
+    "rateResponse": "Оцените ответ",
+    "helpful": "Полезно",
+    "notHelpful": "Бесполезно",
+    "commentPlaceholder": "Оставьте комментарий (необязательно)…",
+    "thankYou": "Спасибо за отзыв!"
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signOut": "Выйти",
+    "email": "Электронная почта",
+    "password": "Пароль"
+  },
+  "errors": {
+    "networkError": "Ошибка сети. Проверьте подключение к интернету.",
+    "notFound": "Страница не найдена.",
+    "unauthorized": "У вас нет доступа к этому ресурсу.",
+    "serverError": "Ошибка сервера. Попробуйте позже."
+  }
+}

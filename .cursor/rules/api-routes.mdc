@@ -1,0 +1,137 @@
+---
+description: NestJS API development rules for apps/api
+globs: "apps/api/**/*.{ts,js}"
+---
+
+# NestJS API Rules — apps/api
+
+## Module Structure
+
+Each feature is a NestJS module. A complete feature module contains:
+
+```
+apps/api/src/modules/<feature>/
+  <feature>.module.ts        — Module definition with imports, controllers, providers
+  <feature>.controller.ts    — Route handlers with OpenAPI decorators
+  <feature>.service.ts       — Business logic, database queries
+  dto/
+    create-<feature>.dto.ts  — Input validation for create operations
+    update-<feature>.dto.ts  — Input validation for update operations
+    <feature>-response.dto.ts — Response shape documentation
+  guards/                    — Optional feature-specific guards
+  interceptors/              — Optional feature-specific interceptors
+```
+
+## Controllers
+
+- Thin controllers — delegate all business logic to the service layer.
+- Every endpoint must have OpenAPI decorators:
+
+```typescript
+@ApiTags('locations')
+@Controller('locations')
+export class LocationsController {
+  @Get(':id')
+  @ApiOperation({ summary: 'Get location details by ID' })
+  @ApiResponse({ status: 200, description: 'Location found', type: LocationResponseDto })
+  @ApiResponse({ status: 404, description: 'Location not found' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.locationsService.findOne(id);
+  }
+}
+```
+
+## DTOs and Validation
+
+- Use class-validator decorators on DTO classes for input validation.
+- Use class-transformer for type coercion (`@Transform`, `@Type`).
+- Extend `PartialType`, `PickType`, or `IntersectionType` from `@nestjs/swagger` to compose DTOs.
+
+```typescript
+export class CreateLocationDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({ description: 'Street address' })
+  address: string;
+
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  @ApiProperty({ description: 'Latitude in WGS84' })
+  latitude: number;
+
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  @ApiProperty({ description: 'Longitude in WGS84' })
+  longitude: number;
+}
+```
+
+## Database Access
+
+- **Prisma ORM** for all standard CRUD operations.
+- **Raw SQL** only for:
+  - PostGIS spatial queries (ST_DWithin, ST_Distance, ST_Contains)
+  - pgvector similarity search (cosine distance, L2 distance)
+- Always use parameterized queries for raw SQL — never interpolate user input.
+
+```typescript
+// PostGIS radius search example
+const nearby = await this.prisma.$queryRaw`
+  SELECT id, name, ST_Distance(
+    geom::geography,
+    ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+  ) as distance_meters
+  FROM locations
+  WHERE ST_DWithin(
+    geom::geography,
+    ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+    ${radiusMeters}
+  )
+  ORDER BY distance_meters
+`;
+```
+
+## Error Handling
+
+- Use NestJS built-in exceptions: `NotFoundException`, `BadRequestException`, `ForbiddenException`, etc.
+- Create custom exception filters for domain-specific errors.
+- Never use bare try/catch in controllers — let exception filters handle errors.
+- Log errors with context using NestJS Logger.
+
+```typescript
+if (!location) {
+  throw new NotFoundException(`Location with ID ${id} not found`);
+}
+```
+
+## Rate Limiting
+
+- Apply `@nestjs/throttler` to all public endpoints.
+- Use `@SkipThrottle()` only for internal/health-check endpoints.
+- Configure per-route limits for expensive operations (AI calls, search).
+
+```typescript
+@Throttle({ default: { limit: 10, ttl: 60000 } })
+@Post('analyze')
+async analyzeLocation(@Body() dto: AnalyzeLocationDto) { ... }
+```
+
+## Authentication & Authorization
+
+- Use guards for route protection.
+- `@Public()` decorator to exempt routes from auth.
+- Role-based access with custom `@Roles()` decorator and RolesGuard.
+
+## Response Format
+
+- Return typed response objects, not raw Prisma models.
+- Use response DTOs to control which fields are exposed.
+- Pagination follows cursor-based or offset-based pattern consistently.
+
+## Imports
+
+- Shared types and validation: `@uvidai/shared`
+- AI operations: `@uvidai/ai-core`
+- External data: `@uvidai/data-connectors`

@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "home": "Почетна",
+    "map": "Мапа",
+    "chat": "Ћаскање",
+    "profile": "Профил",
+    "settings": "Подешавања"
+  },
+  "common": {
+    "search": "Претражи",
+    "loading": "Учитавање…",
+    "error": "Грешка",
+    "save": "Сачувај",
+    "cancel": "Откажи",
+    "submit": "Пошаљи",
+    "delete": "Обриши",
+    "edit": "Измени",
+    "close": "Затвори",
+    "back": "Назад",
+    "next": "Даље",
+    "yes": "Да",
+    "no": "Не",
+    "ok": "У реду",
+    "retry": "Покушај поново",
+    "seeMore": "Прикажи више",
+    "noResults": "Нема резултата"
+  },
+  "modules": {
+    "legal_check": "Правна чистота",
+    "environment": "Животна средина",
+    "lifestyle": "Инфраструктура и стил живота",
+    "price_radar": "Ценовни радар",
+    "neighborhood_score": "Оцена локације",
+    "transport": "Транспорт",
+    "business_scanner": "Бизнис скенер",
+    "general": "Опште"
+  },
+  "chat": {
+    "placeholder": "Питајте о било којој локацији…",
+    "greeting": "Како вам могу помоћи?",
+    "thinking": "Размишљам…",
+    "errorGeneric": "Дошло је до грешке. Покушајте поново.",
+    "newConversation": "Нова конверзација",
+    "conversationHistory": "Историја конверзација"
+  },
+  "location": {
+    "searchPlaceholder": "Унесите адресу или координате…",
+    "currentLocation": "Моја локација",
+    "radiusLabel": "Радијус претраге",
+    "nearbyPois": "Оближње тачке интереса",
+    "noNearbyPois": "Нема оближњих тачака интереса."
+  },
+  "airQuality": {
+    "title": "Квалитет ваздуха",
+    "excellent": "Одличан",
+    "good": "Добар",
+    "acceptable": "Прихватљив",
+    "polluted": "Загађен",
+    "veryPolluted": "Веома загађен",
+    "station": "Станица",
+    "lastUpdated": "Последње ажурирање"
+  },
+  "feedback": {
+    "rateResponse": "Оцените одговор",
+    "helpful": "Корисно",
+    "notHelpful": "Није корисно",
+    "commentPlaceholder": "Оставите коментар (опционо)…",
+    "thankYou": "Хвала на повратној информацији!"
+  },
+  "auth": {
+    "signIn": "Пријавите се",
+    "signOut": "Одјавите се",
+    "email": "Е-пошта",
+    "password": "Лозинка"
+  },
+  "errors": {
+    "networkError": "Проблем са мрежом. Проверите интернет конекцију.",
+    "notFound": "Страница није пронађена.",
+    "unauthorized": "Немате приступ овом ресурсу.",
+    "serverError": "Серверска грешка. Покушајте касније."
+  }
+}

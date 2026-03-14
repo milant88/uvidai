@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: UvidAI API
+  version: 0.1.0
+  description: >
+    Intelligent location analysis API for Belgrade and Novi Sad.
+    Provides legal checks, environmental data, lifestyle scoring,
+    and AI-powered conversational analysis.
+  contact:
+    name: UvidAI Team
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://api.uvidai.rs
+    description: Production
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns service health status and dependency connectivity.
+      operationId: getHealth
+      tags: [System]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: connected
+                      redis:
+                        type: string
+                        example: connected
+                      meilisearch:
+                        type: string
+                        example: connected
+
+  /api/v1/locations/search:
+    get:
+      summary: Search locations
+      description: >
+        Geocode an address or search for locations by name.
+        Returns coordinates, cadastral data, and basic location metadata.
+      operationId: searchLocations
+      tags: [Locations]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query (address, place name, or cadastral number)
+        - name: city
+          in: query
+          schema:
+            type: string
+            enum: [belgrade, novi-sad]
+          description: Filter by city
+      responses:
+        "200":
+          description: Location search results
+
+  /api/v1/pois:
+    get:
+      summary: Get points of interest
+      description: >
+        Retrieve nearby points of interest (schools, hospitals, pharmacies,
+        markets, transit stops) within a given radius of coordinates.
+      operationId: getPois
+      tags: [Lifestyle]
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Latitude
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+          description: Longitude
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            default: 1000
+          description: Search radius in meters
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [education, health, shopping, transit, leisure]
+          description: Filter by POI category
+      responses:
+        "200":
+          description: List of nearby POIs
+
+  /api/v1/air-quality:
+    get:
+      summary: Get air quality data
+      description: >
+        Returns current and historical air quality readings
+        from the nearest monitoring station to the given coordinates.
+      operationId: getAirQuality
+      tags: [Environment]
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+      responses:
+        "200":
+          description: Air quality readings with AQI index
+
+  /api/v1/chat:
+    post:
+      summary: Send a chat message
+      description: >
+        Send a user message to the AI agent. The supervisor agent
+        routes the query to appropriate sub-agents and returns
+        a structured response with sources.
+      operationId: sendChatMessage
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  description: User message in natural language
+                conversation_id:
+                  type: string
+                  format: uuid
+                  description: Existing conversation ID (omit to start new)
+      responses:
+        "200":
+          description: Agent response with structured data and sources
+
+  /api/v1/conversations:
+    get:
+      summary: List conversations
+      description: >
+        Retrieve the user's conversation history,
+        ordered by most recent activity.
+      operationId: listConversations
+      tags: [Chat]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Paginated list of conversations
+
+  /api/v1/feedback:
+    post:
+      summary: Submit feedback
+      description: >
+        Submit user feedback (thumbs up/down, text comment) on an
+        agent response. Used for RLHF and quality monitoring.
+      operationId: submitFeedback
+      tags: [Feedback]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message_id, rating]
+              properties:
+                message_id:
+                  type: string
+                  format: uuid
+                rating:
+                  type: string
+                  enum: [positive, negative]
+                comment:
+                  type: string
+                  description: Optional text feedback
+      responses:
+        "201":
+          description: Feedback recorded

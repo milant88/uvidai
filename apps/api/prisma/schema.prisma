@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum FeedbackSentiment {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+}
+
+enum DatasetStatus {
+  DRAFT
+  READY
+  TRAINING
+  DEPLOYED
+}
+
+enum DatasetItemSource {
+  ADMIN_REWRITE
+  HIGH_RATED
+  USER_APPROVED
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  email       String   @unique
+  displayName String?  @map("display_name")
+  role        UserRole @default(USER)
+  locale      String   @default("sr-Latn")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  conversations Conversation[]
+  feedback      Feedback[]
+
+  @@map("users")
+}
+
+model Conversation {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  title           String?
+  locationAddress String?  @map("location_address")
+  locationLat     Float?   @map("location_lat")
+  locationLng     Float?   @map("location_lng")
+  language        String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@map("conversations")
+}
+
+model Message {
+  id               String      @id @default(uuid()) @db.Uuid
+  conversationId   String      @map("conversation_id") @db.Uuid
+  role             MessageRole
+  content          String      @db.Text
+  module           String?
+  provider         String?
+  model            String?
+  promptTokens     Int?        @map("prompt_tokens")
+  completionTokens Int?        @map("completion_tokens")
+  totalTokens      Int?        @map("total_tokens")
+  latencyMs        Int?        @map("latency_ms")
+  toolCallsJson    Json?       @map("tool_calls_json")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  conversation Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback     Feedback[]
+  adminRatings AdminRating[]
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Feedback {
+  id             String            @id @default(uuid()) @db.Uuid
+  messageId      String            @map("message_id") @db.Uuid
+  conversationId String            @map("conversation_id") @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  sentiment      FeedbackSentiment
+  comment        String?
+  categories     String[]
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([conversationId])
+  @@map("feedback")
+}
+
+model AdminRating {
+  id                String   @id @default(uuid()) @db.Uuid
+  messageId         String   @map("message_id") @db.Uuid
+  conversationId    String   @map("conversation_id") @db.Uuid
+  adminUserId       String   @map("admin_user_id") @db.Uuid
+  accuracy          Int
+  completeness      Int
+  relevance         Int
+  tone              Int
+  idealResponseText String?  @map("ideal_response_text") @db.Text
+  notes             String?
+  tags              String[]
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([conversationId])
+  @@map("admin_ratings")
+}
+
+model FineTuneDataset {
+  id            String        @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  createdBy     String        @map("created_by") @db.Uuid
+  status        DatasetStatus @default(DRAFT)
+  messageCount  Int           @default(0) @map("message_count")
+  modelProvider String?       @map("model_provider")
+  modelName     String?       @map("model_name")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  items FineTuneDatasetItem[]
+
+  @@map("fine_tune_datasets")
+}
+
+model FineTuneDatasetItem {
+  id               String            @id @default(uuid()) @db.Uuid
+  datasetId        String            @map("dataset_id") @db.Uuid
+  inputMessagesJson Json              @map("input_messages_json")
+  idealOutput      String            @db.Text @map("ideal_output")
+  source           DatasetItemSource
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  dataset FineTuneDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId])
+  @@map("fine_tune_dataset_items")
+}

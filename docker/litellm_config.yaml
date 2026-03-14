@@ -1,0 +1,23 @@
+model_list:
+  - model_name: gemini-2.0-flash
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GEMINI_API_KEY
+      rpm: 15
+      tpm: 1000000
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+      rpm: 10
+      tpm: 200000
+
+router_settings:
+  routing_strategy: cost-based-routing
+  allowed_fails: 3
+  cooldown_time: 60
+  num_retries: 2
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

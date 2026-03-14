@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "home": "Home",
+    "map": "Map",
+    "chat": "Chat",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "common": {
+    "search": "Search",
+    "loading": "Loading…",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "retry": "Retry",
+    "seeMore": "See more",
+    "noResults": "No results"
+  },
+  "modules": {
+    "legal_check": "Legal Check",
+    "environment": "Environment",
+    "lifestyle": "Infrastructure & Lifestyle",
+    "price_radar": "Price Radar",
+    "neighborhood_score": "Neighborhood Score",
+    "transport": "Transport",
+    "business_scanner": "Business Scanner",
+    "general": "General"
+  },
+  "chat": {
+    "placeholder": "Ask about any location…",
+    "greeting": "How can I help you?",
+    "thinking": "Thinking…",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "newConversation": "New conversation",
+    "conversationHistory": "Conversation history"
+  },
+  "location": {
+    "searchPlaceholder": "Enter an address or coordinates…",
+    "currentLocation": "My location",
+    "radiusLabel": "Search radius",
+    "nearbyPois": "Nearby points of interest",
+    "noNearbyPois": "No nearby points of interest."
+  },
+  "airQuality": {
+    "title": "Air Quality",
+    "excellent": "Excellent",
+    "good": "Good",
+    "acceptable": "Acceptable",
+    "polluted": "Polluted",
+    "veryPolluted": "Very polluted",
+    "station": "Station",
+    "lastUpdated": "Last updated"
+  },
+  "feedback": {
+    "rateResponse": "Rate this response",
+    "helpful": "Helpful",
+    "notHelpful": "Not helpful",
+    "commentPlaceholder": "Leave a comment (optional)…",
+    "thankYou": "Thanks for your feedback!"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password"
+  },
+  "errors": {
+    "networkError": "Network error. Check your internet connection.",
+    "notFound": "Page not found.",
+    "unauthorized": "You don't have access to this resource.",
+    "serverError": "Server error. Please try again later."
+  }
+}

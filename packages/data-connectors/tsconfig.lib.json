@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/packages/data-connectors",
+    "declaration": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../shared/tsconfig.lib.json"
+    }
+  ]
+}
