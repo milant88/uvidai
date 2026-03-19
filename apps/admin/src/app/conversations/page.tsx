@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { mockConversations } from '@/lib/mock-data';
-
+import { mockConversations, type Conversation } from '@/lib/mock-data';
+import { apiV1 } from '@/lib/api';
 const ITEMS_PER_PAGE = 10;
 
 const MODULE_BADGE_COLORS: Record<string, string> = {
@@ -11,9 +11,14 @@ const MODULE_BADGE_COLORS: Record<string, string> = {
   'air-quality': 'badge-green',
   legal: 'badge-yellow',
   price: 'badge-red',
+  neighborhood: 'badge-purple',
+  transport: 'badge-blue',
+  business: 'badge-yellow',
+  reports: 'badge-green',
 };
 
 export default function ConversationsPage() {
+  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
   const [search, setSearch] = useState('');
   const [language, setLanguage] = useState('all');
   const [module, setModule] = useState('all');
@@ -21,8 +26,54 @@ export default function ConversationsPage() {
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(apiV1('/admin/conversations'));
+        if (res.ok) {
+          const json = await res.json();
+          const rows = json.data;
+          if (!Array.isArray(rows)) return;
+
+          setConversations(
+            rows.map((c: Record<string, unknown>) => {
+              const created = c.createdAt ?? c.startedAt;
+              const startedAt =
+                typeof created === 'string'
+                  ? created
+                  : created instanceof Date
+                    ? created.toISOString()
+                    : String(created ?? '');
+              const msgs = c.messages as { module?: string | null }[] | undefined;
+              const lastMod = msgs?.[0]?.module ?? 'general';
+              const count =
+                (c._count as { messages?: number } | undefined)?.messages ??
+                msgs?.length ??
+                0;
+
+              return {
+                id: String(c.id),
+                userId: String(c.userId),
+                user: String(c.userId),
+                module: lastMod,
+                modulesUsed: lastMod ? [lastMod] : [],
+                language: (c.language as string) ?? undefined,
+                rating: (c.rating as number | null | undefined) ?? null,
+                startedAt,
+                messageCount: count,
+              };
+            }),
+          );
+        }
+      } catch {
+        // API unreachable — keep mock data
+      }
+    }
+    load();
+  }, []);
+
   const filtered = useMemo(() => {
-    return mockConversations.filter((conv) => {
+    return conversations.filter((conv) => {
       if (search && !(conv.user ?? conv.userId).toLowerCase().includes(search.toLowerCase()) && !conv.id.toLowerCase().includes(search.toLowerCase())) {
         return false;
       }
@@ -101,6 +152,10 @@ export default function ConversationsPage() {
           <option value="air-quality">air-quality</option>
           <option value="legal">legal</option>
           <option value="price">price</option>
+          <option value="neighborhood">neighborhood</option>
+          <option value="transport">transport</option>
+          <option value="business">business</option>
+          <option value="reports">reports</option>
         </select>
         <input
           className="form-input"

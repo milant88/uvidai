@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSettingsStore, type Locale, type Theme } from '@/store/settings-store';
 import { colors } from '@/constants/theme';
 
@@ -29,6 +30,7 @@ function useThemeColors() {
 
 export default function ProfileScreen() {
   const themeColors = useThemeColors();
+  const router = useRouter();
   const locale = useSettingsStore((s) => s.locale);
   const theme = useSettingsStore((s) => s.theme);
   const setLocale = useSettingsStore((s) => s.setLocale);
@@ -88,6 +90,13 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      <TouchableOpacity
+        style={styles.touristBtn}
+        onPress={() => router.push('/tourist')}
+      >
+        <Text style={styles.touristBtnText}>Turistički vodič</Text>
+      </TouchableOpacity>
+
       <View style={styles.section}>
         <Text style={styles.version}>UvidAI v0.1.0</Text>
       </View>
@@ -138,6 +147,20 @@ function createStyles(c: (typeof colors)['dark']) {
     optionTextActive: {
       color: c.accent,
       fontWeight: '500',
+    },
+    touristBtn: {
+      padding: 14,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.accent,
+      backgroundColor: c.accentMuted,
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    touristBtnText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: c.accent,
     },
     version: {
       fontSize: 13,

@@ -142,6 +142,28 @@ model AdminRating {
   @@map("admin_ratings")
 }
 
+enum AbTestStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model AbTest {
+  id                 String       @id @default(uuid()) @db.Uuid
+  name               String
+  promptVariantA     String       @map("prompt_variant_a") @db.Text
+  promptVariantB     String       @map("prompt_variant_b") @db.Text
+  trafficSplit       Int          @default(50) @map("traffic_split")
+  evaluationCriteria String[]     @map("evaluation_criteria")
+  status             AbTestStatus @default(DRAFT)
+  startDate          DateTime?    @map("start_date")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  @@map("ab_tests")
+}
+
 model FineTuneDataset {
   id            String        @id @default(uuid()) @db.Uuid
   name          String

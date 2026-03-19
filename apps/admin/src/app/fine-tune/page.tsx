@@ -6,8 +6,7 @@ import {
   type FineTuneDataset,
   type FineTuneDatasetStatus,
 } from '@/lib/mock-data';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { apiV1 } from '@/lib/api';
 
 function StatusBadge({ status }: { status: FineTuneDatasetStatus }) {
   const cls =
@@ -69,7 +68,7 @@ export default function FineTunePage() {
 
   const fetchDatasets = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/fine-tune/datasets`);
+      const res = await fetch(apiV1('/fine-tune/datasets'));
       if (res.ok) {
         const json = await res.json();
         if (json.data) {
@@ -110,7 +109,7 @@ export default function FineTunePage() {
         const ds = datasets.find((d) => d.id === next);
         if (ds && (!ds.items || ds.items.length === 0) && ds.itemCount > 0) {
           try {
-            const res = await fetch(`${API_BASE}/fine-tune/datasets/${next}`);
+            const res = await fetch(apiV1(`/fine-tune/datasets/${next}`));
             if (res.ok) {
               const json = await res.json();
               const d = json.data;
@@ -154,7 +153,7 @@ export default function FineTunePage() {
     if (!createName.trim()) return;
     setLoading('create');
     try {
-      const res = await fetch(`${API_BASE}/fine-tune/datasets`, {
+      const res = await fetch(apiV1('/fine-tune/datasets'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +207,7 @@ export default function FineTunePage() {
   const handleAutoCurate = useCallback(async (id: string) => {
     setLoading(id);
     try {
-      const res = await fetch(`${API_BASE}/fine-tune/datasets/${id}/auto-curate`, {
+      const res = await fetch(apiV1(`/fine-tune/datasets/${id}/auto-curate`), {
         method: 'POST',
       });
       if (res.ok) {
@@ -236,7 +235,7 @@ export default function FineTunePage() {
   const handleExport = useCallback(async (id: string) => {
     setLoading(id);
     try {
-      const res = await fetch(`${API_BASE}/fine-tune/datasets/${id}/export`);
+      const res = await fetch(apiV1(`/fine-tune/datasets/${id}/export`));
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -274,7 +273,7 @@ export default function FineTunePage() {
     if (ds?.status !== 'READY' && ds?.status !== 'DRAFT') return;
     setLoading(id);
     try {
-      const res = await fetch(`${API_BASE}/fine-tune/datasets/${id}/train`, {
+      const res = await fetch(apiV1(`/fine-tune/datasets/${id}/train`), {
         method: 'POST',
       });
       if (res.ok) {

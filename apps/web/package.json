@@ -3,7 +3,16 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
-    "name": "web"
+    "name": "web",
+    "targets": {
+      "build": {
+        "options": {
+          "env": {
+            "NODE_ENV": "production"
+          }
+        }
+      }
+    }
   },
   "dependencies": {
     "next": "~16.0.1",

@@ -21,17 +21,6 @@ function uid(): string {
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('beograd') || lower.includes('belgrad')) {
-    return 'Beograd ima mnogo zanimljivih kvartova! Vračar je poznat po mirnom okruženju, Dorćol nudi bogat kulturni život. Želite li da analiziram određeni kvart?';
-  }
-  if (lower.includes('novi sad')) {
-    return 'Novi Sad, prestonica kulture! Liman je popularan među porodicama, Grbavica je odlična za mlade profesionalce. Koji aspekt vas zanima?';
-  }
-  return 'Hvala na pitanju! Mogu vam pomoći sa analizom lokacija u Beogradu i Novom Sadu — kvalitet vazduha, škole, transport, zelenilo. Pitajte me nešto konkretno!';
-}
-
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   isLoading: false,
@@ -64,11 +53,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
       let assistantContent: string;
 
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const payload = json.data ?? json;
         assistantContent =
-          data.reply ?? data.message ?? 'Primio sam vaš upit. Obrađujem...';
+          payload.message?.content ??
+          payload.reply ??
+          payload.message ??
+          'Primio sam vaš upit. Obrađujem...';
+
+        if (payload.conversationId) {
+          set({ conversationId: payload.conversationId });
+        }
       } else {
-        assistantContent = getMockResponse(content);
+        let errText = `Server je vratio grešku (${res.status}).`;
+        try {
+          const errBody: unknown = await res.json();
+          if (errBody && typeof errBody === 'object') {
+            const msg =
+              'message' in errBody && typeof errBody.message === 'string'
+                ? errBody.message
+                : 'error' in errBody && typeof errBody.error === 'string'
+                  ? errBody.error
+                  : null;
+            if (msg) errText = msg;
+          }
+        } catch {
+          /* keep status fallback */
+        }
+        assistantContent = errText;
       }
 
       const assistantMsg: Message = {
@@ -86,7 +98,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const fallback: Message = {
         id: uid(),
         role: 'assistant',
-        content: getMockResponse(content),
+        content:
+          'Nije moguće povezati se sa serverom. Proverite da li je API pokrenut i da li je EXPO_PUBLIC_API_URL tačan.',
         timestamp: new Date(),
       };
 

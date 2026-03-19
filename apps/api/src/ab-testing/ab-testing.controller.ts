@@ -26,7 +26,7 @@ export class AbTestingController {
   @ApiOperation({ summary: 'Create A/B test' })
   @ApiCreatedResponse({ description: 'A/B test created' })
   async create(@Body() dto: CreateAbTestDto) {
-    const test = this.abTestingService.create(
+    const test = await this.abTestingService.create(
       dto.name,
       dto.promptVariantA,
       dto.promptVariantB,
@@ -40,7 +40,7 @@ export class AbTestingController {
   @ApiOperation({ summary: 'List all A/B tests' })
   @ApiOkResponse({ description: 'List of A/B tests' })
   async list() {
-    const tests = this.abTestingService.list();
+    const tests = await this.abTestingService.list();
     return { success: true, data: tests };
   }
 
@@ -49,7 +49,7 @@ export class AbTestingController {
   @ApiParam({ name: 'id', description: 'A/B test ID' })
   @ApiOkResponse({ description: 'Variant comparison results' })
   async getResults(@Param('id') id: string) {
-    const results = this.abTestingService.getResults(id);
+    const results = await this.abTestingService.getResults(id);
     return { success: true, data: results };
   }
 
@@ -58,8 +58,8 @@ export class AbTestingController {
   @ApiParam({ name: 'id', description: 'A/B test ID' })
   @ApiOkResponse({ description: 'A/B test details' })
   async get(@Param('id') id: string) {
-    const test = this.abTestingService.get(id);
-    const results = this.abTestingService.getResults(id);
+    const test = await this.abTestingService.get(id);
+    const results = await this.abTestingService.getResults(id);
     return { success: true, data: { ...test, results } };
   }
 
@@ -68,7 +68,7 @@ export class AbTestingController {
   @ApiParam({ name: 'id', description: 'A/B test ID' })
   @ApiOkResponse({ description: 'Updated A/B test' })
   async update(@Param('id') id: string, @Body() dto: UpdateAbTestDto) {
-    const test = this.abTestingService.updateStatus(id, dto.status);
+    const test = await this.abTestingService.updateStatus(id, dto.status);
     return { success: true, data: test };
   }
 }

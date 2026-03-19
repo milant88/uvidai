@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLocaleStore } from '@/store/locale-store';
+import type { SupportedLocale } from '@uvidai/i18n';
 import styles from './LanguageSelector.module.css';
 
 interface LangOption {
-  code: string;
+  code: SupportedLocale;
   label: string;
   flag: string;
 }
@@ -17,17 +19,11 @@ const LANGUAGES: LangOption[] = [
 ];
 
 export function LanguageSelector() {
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<LangOption>(LANGUAGES[0]);
+  const selected = LANGUAGES.find((l) => l.code === locale) ?? LANGUAGES[0];
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('uvidai-lang');
-    if (stored) {
-      const match = LANGUAGES.find((l) => l.code === stored);
-      if (match) setSelected(match);
-    }
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -40,8 +36,7 @@ export function LanguageSelector() {
   }, []);
 
   function pick(lang: LangOption) {
-    setSelected(lang);
-    localStorage.setItem('uvidai-lang', lang.code);
+    setLocale(lang.code);
     setOpen(false);
   }
 

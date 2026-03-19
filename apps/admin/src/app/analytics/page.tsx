@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   mockQueryVolumeData,
   mockHourlyData,
@@ -9,6 +9,7 @@ import {
   mockTopModules,
   mockDailyActiveUsers,
 } from '@/lib/mock-data';
+import { apiV1 } from '@/lib/api';
 import {
   BarChart,
   Bar,
@@ -19,6 +20,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -51,6 +53,24 @@ const retentionData = [
   { day: 'Day 30', pct: 18 },
 ];
 
+interface AdminUsageAnalytics {
+  queryVolumeByDate: { date: string; queries: number }[];
+  moduleBreakdown: { module: string; count: number }[];
+}
+
+interface AdminAiPerformance {
+  tokensUsed: { prompt: number; completion: number; total: number };
+  costEstimate: number;
+  latencyPercentiles: {
+    p50: number;
+    p75: number;
+    p90: number;
+    p95: number;
+    p99: number;
+  };
+  byProvider: { provider: string; tokens: number; requestCount: number }[];
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3
@@ -67,14 +87,27 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function UsageSection() {
-  const topQueryTypes = [
-    { type: 'Enrollment questions', count: 1245 },
-    { type: 'Course information', count: 1089 },
-    { type: 'Visa & permits', count: 876 },
-    { type: 'Financial aid', count: 654 },
-    { type: 'Housing inquiries', count: 543 },
-  ];
+function UsageSection({ usage }: { usage: AdminUsageAnalytics | null }) {
+  const trends =
+    usage && usage.queryVolumeByDate.length > 0
+      ? usage.queryVolumeByDate
+      : mockQueryVolumeData;
+
+  const topQueryTypes =
+    usage && usage.moduleBreakdown.length > 0
+      ? [...usage.moduleBreakdown]
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8)
+          .map((m) => ({ type: m.module, count: m.count }))
+      : [
+          { type: 'Enrollment questions', count: 1245 },
+          { type: 'Course information', count: 1089 },
+          { type: 'Visa & permits', count: 876 },
+          { type: 'Financial aid', count: 654 },
+          { type: 'Housing inquiries', count: 543 },
+        ];
+
+  const maxTopCount = Math.max(topQueryTypes[0]?.count ?? 1, 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -105,7 +138,7 @@ function UsageSection() {
             <h4 className="chart-container-title">Query Trends (30 days)</h4>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={mockQueryVolumeData}>
+            <LineChart data={trends}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis
                 dataKey="date"
@@ -183,7 +216,7 @@ function UsageSection() {
                 >
                   <div
                     style={{
-                      width: `${(q.count / topQueryTypes[0].count) * 100}%`,
+                      width: `${(q.count / maxTopCount) * 100}%`,
                       height: '100%',
                       background: COLORS[i % COLORS.length],
                       borderRadius: 2,
@@ -199,20 +232,40 @@ function UsageSection() {
   );
 }
 
-function AIPerformanceSection() {
-  const totalCost = mockCostPerProvider.reduce((s, p) => s + p.cost, 0);
-  const totalTokens = mockCostPerProvider.reduce((s, p) => s + p.tokens, 0);
-  const avgCostPerQuery = (totalCost / 28934).toFixed(4);
-  const medianCostPerQuery = '0.0162';
-  const maxCostPerQuery = '0.1250';
+function AIPerformanceSection({ ai }: { ai: AdminAiPerformance | null }) {
+  const costRows = ai
+    ? ai.byProvider.map((p) => ({
+        provider: p.provider,
+        tokens: p.tokens,
+        cost: (p.tokens / 1_000_000) * 2.5,
+      }))
+    : mockCostPerProvider;
 
-  const percentileEntries: { label: string; value: number }[] = [
-    { label: 'p50', value: mockLatencyPercentiles.p50 },
-    { label: 'p75', value: mockLatencyPercentiles.p75 },
-    { label: 'p90', value: mockLatencyPercentiles.p90 },
-    { label: 'p95', value: mockLatencyPercentiles.p95 },
-    { label: 'p99', value: mockLatencyPercentiles.p99 },
-  ];
+  const totalCost = costRows.reduce((s, p) => s + p.cost, 0);
+  const totalTokens = ai
+    ? ai.tokensUsed.total
+    : mockCostPerProvider.reduce((s, p) => s + p.tokens, 0);
+  const totalRequests = ai
+    ? ai.byProvider.reduce((s, p) => s + p.requestCount, 0)
+    : 28_934;
+  const avgCostPerQuery =
+    totalRequests > 0 ? (totalCost / totalRequests).toFixed(4) : '—';
+
+  const percentileEntries: { label: string; value: number }[] = ai
+    ? [
+        { label: 'p50', value: ai.latencyPercentiles.p50 / 1000 },
+        { label: 'p75', value: ai.latencyPercentiles.p75 / 1000 },
+        { label: 'p90', value: ai.latencyPercentiles.p90 / 1000 },
+        { label: 'p95', value: ai.latencyPercentiles.p95 / 1000 },
+        { label: 'p99', value: ai.latencyPercentiles.p99 / 1000 },
+      ]
+    : [
+        { label: 'p50', value: mockLatencyPercentiles.p50 },
+        { label: 'p75', value: mockLatencyPercentiles.p75 },
+        { label: 'p90', value: mockLatencyPercentiles.p90 },
+        { label: 'p95', value: mockLatencyPercentiles.p95 },
+        { label: 'p99', value: mockLatencyPercentiles.p99 },
+      ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -223,7 +276,7 @@ function AIPerformanceSection() {
             <h4 className="chart-container-title">Cost by Provider</h4>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={mockCostPerProvider}>
+            <BarChart data={costRows}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis
                 dataKey="provider"
@@ -241,8 +294,8 @@ function AIPerformanceSection() {
                 ]}
               />
               <Bar dataKey="cost" radius={[4, 4, 0, 0]}>
-                {mockCostPerProvider.map((_, i) => (
-                  <rect key={i} fill={COLORS[i % COLORS.length]} />
+                {costRows.map((_, i) => (
+                  <Cell key={`cost-${i}`} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
@@ -255,7 +308,7 @@ function AIPerformanceSection() {
             <h4 className="chart-container-title">Tokens by Provider</h4>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={mockCostPerProvider}>
+            <BarChart data={costRows}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis
                 dataKey="provider"
@@ -275,8 +328,8 @@ function AIPerformanceSection() {
                 ]}
               />
               <Bar dataKey="tokens" radius={[4, 4, 0, 0]}>
-                {mockCostPerProvider.map((_, i) => (
-                  <rect key={i} fill={COLORS[i % COLORS.length]} />
+                {costRows.map((_, i) => (
+                  <Cell key={`tok-${i}`} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>
@@ -287,10 +340,10 @@ function AIPerformanceSection() {
       {/* Cost Distribution Stats */}
       <div className="grid grid-cols-4 gap-2">
         <div className="stat-card">
-          <div className="stat-card-label">Total Cost</div>
-          <div className="stat-card-value">${totalCost.toFixed(0)}</div>
+          <div className="stat-card-label">Total Cost (est.)</div>
+          <div className="stat-card-value">${totalCost.toFixed(2)}</div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4 }}>
-            {(totalTokens / 1_000_000).toFixed(1)}M tokens
+            {ai ? `${(totalTokens / 1_000_000).toFixed(2)}M tokens` : `${(totalTokens / 1_000_000).toFixed(1)}M tokens`}
           </div>
         </div>
         <div className="stat-card">
@@ -299,11 +352,11 @@ function AIPerformanceSection() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Median Cost/Query</div>
-          <div className="stat-card-value">${medianCostPerQuery}</div>
+          <div className="stat-card-value">{ai ? '—' : '$0.0162'}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Max Cost/Query</div>
-          <div className="stat-card-value">${maxCostPerQuery}</div>
+          <div className="stat-card-value">{ai ? '—' : '$0.1250'}</div>
         </div>
       </div>
 
@@ -360,7 +413,12 @@ function AIPerformanceSection() {
   );
 }
 
-function ModulesSection() {
+function ModulesSection({ usage }: { usage: AdminUsageAnalytics | null }) {
+  const moduleActivation =
+    usage && usage.moduleBreakdown.length > 0
+      ? usage.moduleBreakdown.map((m) => ({ module: m.module, count: m.count }))
+      : mockTopModules;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div className="grid grid-cols-2 gap-2">
@@ -370,7 +428,7 @@ function ModulesSection() {
             <h4 className="chart-container-title">Module Activation Count</h4>
           </div>
           <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={mockTopModules}>
+            <BarChart data={moduleActivation}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
               <XAxis
                 dataKey="module"
@@ -495,6 +553,43 @@ function UsersSection() {
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Usage');
+  const [usage, setUsage] = useState<AdminUsageAnalytics | null>(null);
+  const [aiPerf, setAiPerf] = useState<AdminAiPerformance | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [u, a] = await Promise.all([
+          fetch(apiV1('/admin/analytics/usage')),
+          fetch(apiV1('/admin/analytics/ai-performance')),
+        ]);
+        if (cancelled) return;
+        if (u.ok) {
+          const j: unknown = await u.json();
+          const payload =
+            j && typeof j === 'object' && 'data' in j
+              ? (j as { data: AdminUsageAnalytics }).data
+              : (j as AdminUsageAnalytics);
+          setUsage(payload);
+        }
+        if (a.ok) {
+          const j: unknown = await a.json();
+          const payload =
+            j && typeof j === 'object' && 'data' in j
+              ? (j as { data: AdminAiPerformance }).data
+              : (j as AdminAiPerformance);
+          setAiPerf(payload);
+        }
+      } catch {
+        /* demo data */
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div>
@@ -543,19 +638,19 @@ export default function AnalyticsPage() {
         {activeTab === 'Usage' && (
           <>
             <SectionTitle>Usage Analytics</SectionTitle>
-            <UsageSection />
+            <UsageSection usage={usage} />
           </>
         )}
         {activeTab === 'AI Performance' && (
           <>
             <SectionTitle>AI Performance</SectionTitle>
-            <AIPerformanceSection />
+            <AIPerformanceSection ai={aiPerf} />
           </>
         )}
         {activeTab === 'Modules' && (
           <>
             <SectionTitle>Module Analytics</SectionTitle>
-            <ModulesSection />
+            <ModulesSection usage={usage} />
           </>
         )}
         {activeTab === 'Users' && (

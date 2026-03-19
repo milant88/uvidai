@@ -1,77 +1,66 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-
-export interface AbTest {
-  id: string;
-  name: string;
-  promptVariantA: string;
-  promptVariantB: string;
-  trafficSplit: number;
-  evaluationCriteria: string[];
-  status: 'draft' | 'active' | 'paused' | 'completed';
-  startDate: string | null;
-  createdAt: string;
-  results?: {
-    variantA: { queryCount: number; avgUserRating: number; avgAdminRating: number };
-    variantB: { queryCount: number; avgUserRating: number; avgAdminRating: number };
-    zScore?: number;
-    significant?: boolean;
-  };
-}
+import { PrismaService } from '../prisma/prisma.service';
+import { AbTestStatus } from '@prisma/client';
 
 @Injectable()
 export class AbTestingService {
   private readonly logger = new Logger(AbTestingService.name);
-  private readonly tests = new Map<string, AbTest>();
-  private idCounter = 0;
 
-  create(
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(
     name: string,
     promptVariantA: string,
     promptVariantB: string,
     trafficSplit: number,
     evaluationCriteria: string[],
-  ): AbTest {
-    const id = `ab-${++this.idCounter}-${Date.now()}`;
-    const test: AbTest = {
-      id,
-      name,
-      promptVariantA,
-      promptVariantB,
-      trafficSplit: trafficSplit ?? 50,
-      evaluationCriteria: evaluationCriteria ?? [],
-      status: 'draft',
-      startDate: null,
-      createdAt: new Date().toISOString(),
+  ) {
+    const test = await this.prisma.abTest.create({
+      data: {
+        name,
+        promptVariantA,
+        promptVariantB,
+        trafficSplit: trafficSplit ?? 50,
+        evaluationCriteria: evaluationCriteria ?? [],
+        status: AbTestStatus.DRAFT,
+      },
+    });
+    this.logger.log(`Created A/B test ${test.id}: ${name}`);
+    return test;
+  }
+
+  async list() {
+    return this.prisma.abTest.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async get(id: string) {
+    const test = await this.prisma.abTest.findUnique({ where: { id } });
+    if (!test) throw new NotFoundException('A/B test not found');
+    return test;
+  }
+
+  async updateStatus(id: string, status: 'active' | 'paused' | 'completed') {
+    const test = await this.prisma.abTest.findUnique({ where: { id } });
+    if (!test) throw new NotFoundException('A/B test not found');
+
+    const statusMap: Record<string, AbTestStatus> = {
+      active: AbTestStatus.ACTIVE,
+      paused: AbTestStatus.PAUSED,
+      completed: AbTestStatus.COMPLETED,
     };
-    this.tests.set(id, test);
-    this.logger.log(`Created A/B test ${id}: ${name}`);
-    return test;
-  }
-
-  list(): AbTest[] {
-    return Array.from(this.tests.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }
-
-  get(id: string): AbTest {
-    const test = this.tests.get(id);
-    if (!test) throw new NotFoundException('A/B test not found');
-    return test;
-  }
-
-  updateStatus(id: string, status: 'active' | 'paused' | 'completed'): AbTest {
-    const test = this.tests.get(id);
-    if (!test) throw new NotFoundException('A/B test not found');
-    test.status = status;
+    const prismaStatus = statusMap[status] ?? AbTestStatus.DRAFT;
+    const data: Record<string, unknown> = { status: prismaStatus };
     if (status === 'active' && !test.startDate) {
-      test.startDate = new Date().toISOString();
+      data.startDate = new Date();
     }
-    return test;
+
+    return this.prisma.abTest.update({ where: { id }, data });
   }
 
-  getResults(id: string): AbTest['results'] {
-    const test = this.tests.get(id);
+  async getResults(id: string) {
+    const test = await this.prisma.abTest.findUnique({ where: { id } });
     if (!test) throw new NotFoundException('A/B test not found');
 
     const nA = 35;

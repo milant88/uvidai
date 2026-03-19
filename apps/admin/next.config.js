@@ -10,6 +10,15 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${apiUrl.replace(/\/$/, '')}/api/v1/:path*`,
+      },
+    ];
+  },
 };
 
 const plugins = [

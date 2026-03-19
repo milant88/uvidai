@@ -1,4 +1,12 @@
 import { create } from 'zustand';
+import { useMapStore, type MapMarker } from './map-store';
+
+/** Prefer same-origin + Next rewrites; override with NEXT_PUBLIC_API_URL if needed */
+function getApiBase(): string {
+  const env = process.env.NEXT_PUBLIC_API_URL;
+  if (env != null && env !== '') return env.replace(/\/$/, '');
+  return '';
+}
 
 export interface Message {
   id: string;
@@ -6,6 +14,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   feedback?: 'positive' | 'negative';
+  agentsUsed?: string[];
 }
 
 interface ChatState {
@@ -40,11 +49,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((s) => ({
       messages: [...s.messages, userMsg],
       isLoading: true,
-      conversationId: s.conversationId ?? uid(),
     }));
 
     try {
-      const res = await fetch('/api/v1/chat', {
+      const res = await fetch(`${getApiBase()}/api/v1/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,14 +62,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
 
       let assistantContent: string;
+      let agentsUsed: string[] = [];
 
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const payload = json.data ?? json;
         assistantContent =
-          data.reply ?? data.message ?? 'Primio sam vaš upit. Obrađujem...';
+          payload.message?.content ??
+          payload.reply ??
+          payload.message ??
+          'Primio sam vaš upit. Obrađujem...';
+        agentsUsed = payload.agentsUsed ?? [];
+
+        if (payload.conversationId) {
+          set({ conversationId: payload.conversationId });
+        }
       } else {
-        // Mock response while the API isn't wired up
-        assistantContent = getMockResponse(content);
+        let errText = `Server je vratio grešku (${res.status}).`;
+        try {
+          const errBody: unknown = await res.json();
+          if (errBody && typeof errBody === 'object') {
+            const msg =
+              'message' in errBody && typeof errBody.message === 'string'
+                ? errBody.message
+                : 'error' in errBody && typeof errBody.error === 'string'
+                  ? errBody.error
+                  : null;
+            if (msg) errText = msg;
+          }
+        } catch {
+          /* keep status fallback */
+        }
+        assistantContent = errText;
       }
 
       const assistantMsg: Message = {
@@ -69,17 +101,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
         role: 'assistant',
         content: assistantContent,
         timestamp: new Date(),
+        agentsUsed,
       };
 
       set((s) => ({
         messages: [...s.messages, assistantMsg],
         isLoading: false,
       }));
+
+      extractAndAddMarkers(assistantContent);
     } catch {
       const fallback: Message = {
         id: uid(),
         role: 'assistant',
-        content: getMockResponse(content),
+        content:
+          'Nije moguće povezati se sa serverom. Proverite da li je API pokrenut (npr. `pnpm dev:api`).',
         timestamp: new Date(),
       };
 
@@ -97,17 +133,54 @@ export const useChatStore = create<ChatState>((set, get) => ({
       ),
     })),
 
-  clearChat: () =>
-    set({ messages: [], conversationId: null, isLoading: false }),
+  clearChat: () => {
+    set({ messages: [], conversationId: null, isLoading: false });
+    useMapStore.getState().clearMarkers();
+  },
 }));
 
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('beograd') || lower.includes('belgrad')) {
-    return 'Beograd ima mnogo zanimljivih kvartova! **Vračar** je poznat po mirnom okruženju i odličnoj infrastrukturi, dok **Dorćol** nudi bogat kulturni život. Želite li da analiziram određeni kvart?';
+const KNOWN_LOCATIONS: Record<string, { lat: number; lng: number }> = {
+  'vračar': { lat: 44.7937, lng: 20.4754 },
+  'dorćol': { lat: 44.8228, lng: 20.4628 },
+  'liman': { lat: 45.2441, lng: 19.8275 },
+  'grbavica': { lat: 45.2481, lng: 19.8381 },
+  'novi beograd': { lat: 44.8059, lng: 20.4122 },
+  'zemun': { lat: 44.8450, lng: 20.4010 },
+  'savski venac': { lat: 44.7983, lng: 20.4541 },
+  'stari grad': { lat: 44.8184, lng: 20.4586 },
+  'palilula': { lat: 44.8227, lng: 20.4819 },
+  'voždovac': { lat: 44.7739, lng: 20.4901 },
+  'čukarica': { lat: 44.7800, lng: 20.4100 },
+  'rakovica': { lat: 44.7612, lng: 20.4500 },
+  'petrovaradin': { lat: 45.2519, lng: 19.8639 },
+  'detelinara': { lat: 45.2600, lng: 19.8300 },
+  'telep': { lat: 45.2400, lng: 19.8100 },
+  'podbara': { lat: 45.2575, lng: 19.8475 },
+};
+
+function extractAndAddMarkers(text: string) {
+  const lower = text.toLowerCase();
+  const newMarkers: MapMarker[] = [];
+
+  for (const [name, coords] of Object.entries(KNOWN_LOCATIONS)) {
+    if (lower.includes(name)) {
+      newMarkers.push({
+        id: `loc-${name}`,
+        lat: coords.lat,
+        lng: coords.lng,
+        category: 'default',
+        label: name.charAt(0).toUpperCase() + name.slice(1),
+      });
+    }
   }
-  if (lower.includes('novi sad')) {
-    return 'Novi Sad, prestonica kulture! **Liman** je popularan među porodicama, a **Grbavica** je odlična za mlade profesionalce. Koji aspekt vas zanima — transport, škole, ili nešto drugo?';
+
+  if (newMarkers.length > 0) {
+    const mapStore = useMapStore.getState();
+    mapStore.addMarkers(newMarkers);
+    mapStore.setCenter(newMarkers[0].lat, newMarkers[0].lng);
+    if (newMarkers.length === 1) {
+      mapStore.setZoom(14);
+    }
   }
-  return 'Hvala na pitanju! Mogu vam pomoći sa analizom lokacija u Beogradu i Novom Sadu — kvalitet vazduha, škole, transport, zelenilo i još mnogo toga. Pitajte me nešto konkretno!';
 }
+

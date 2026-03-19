@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { mockFeedback } from '@/lib/mock-data';
+import { mockFeedback, type Feedback } from '@/lib/mock-data';
+import { apiV1 } from '@/lib/api';
 import {
   BarChart,
   Bar,
@@ -12,6 +13,32 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+
+function mapApiFeedback(f: Record<string, unknown>): Feedback {
+  const raw = f.sentiment;
+  let sentiment: Feedback['sentiment'] = 'neutral';
+  if (raw === 'POSITIVE' || raw === 'positive') sentiment = 'positive';
+  else if (raw === 'NEGATIVE' || raw === 'negative') sentiment = 'negative';
+
+  const created = f.createdAt;
+  const createdAt =
+    typeof created === 'string'
+      ? created
+      : created instanceof Date
+        ? created.toISOString()
+        : '';
+
+  return {
+    id: String(f.id),
+    sentiment,
+    comment: String(f.comment ?? ''),
+    categories: Array.isArray(f.categories) ? (f.categories as string[]) : [],
+    userId: String(f.userId),
+    messageId: String(f.messageId),
+    conversationId: String(f.conversationId),
+    createdAt,
+  };
+}
 
 const ITEMS_PER_PAGE = 8;
 
@@ -40,20 +67,39 @@ function SentimentIcon({ sentiment }: { sentiment: string }) {
 }
 
 export default function FeedbackPage() {
+  const [feedbackData, setFeedbackData] = useState<Feedback[]>(mockFeedback);
   const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
 
-  const allCategories = useMemo(() => {
-    const cats = new Set<string>();
-    mockFeedback.forEach((f) => f.categories.forEach((c) => cats.add(c)));
-    return Array.from(cats).sort();
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(apiV1('/admin/feedback'));
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data;
+          if (Array.isArray(data)) {
+            setFeedbackData(data.map((row) => mapApiFeedback(row as Record<string, unknown>)));
+          }
+        }
+      } catch {
+        // API unreachable — keep mock data
+      }
+    }
+    load();
   }, []);
 
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    feedbackData.forEach((f) => f.categories.forEach((c) => cats.add(c)));
+    return Array.from(cats).sort();
+  }, [feedbackData]);
+
   const filtered = useMemo(() => {
-    let data = [...mockFeedback];
+    let data = [...feedbackData];
     if (sentimentFilter !== 'all') {
       data = data.filter((f) => f.sentiment === sentimentFilter);
     }
@@ -68,7 +114,7 @@ export default function FeedbackPage() {
       data = data.filter((f) => f.createdAt <= toEnd);
     }
     return data;
-  }, [sentimentFilter, categoryFilter, dateFrom, dateTo]);
+  }, [feedbackData, sentimentFilter, categoryFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paged = filtered.slice(
@@ -76,17 +122,17 @@ export default function FeedbackPage() {
     page * ITEMS_PER_PAGE
   );
 
-  const posCount = mockFeedback.filter((f) => f.sentiment === 'positive').length;
-  const negCount = mockFeedback.filter((f) => f.sentiment === 'negative').length;
-  const neuCount = mockFeedback.filter((f) => f.sentiment === 'neutral').length;
-  const total = mockFeedback.length;
-  const posPct = ((posCount / total) * 100).toFixed(0);
-  const negPct = ((negCount / total) * 100).toFixed(0);
-  const neuPct = ((neuCount / total) * 100).toFixed(0);
+  const posCount = feedbackData.filter((f) => f.sentiment === 'positive').length;
+  const negCount = feedbackData.filter((f) => f.sentiment === 'negative').length;
+  const neuCount = feedbackData.filter((f) => f.sentiment === 'neutral').length;
+  const total = feedbackData.length;
+  const posPct = total > 0 ? ((posCount / total) * 100).toFixed(0) : '0';
+  const negPct = total > 0 ? ((negCount / total) * 100).toFixed(0) : '0';
+  const neuPct = total > 0 ? ((neuCount / total) * 100).toFixed(0) : '0';
 
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
-    mockFeedback
+    feedbackData
       .filter((f) => f.sentiment === 'negative')
       .forEach((f) => f.categories.forEach((c) => {
         counts[c] = (counts[c] || 0) + 1;
@@ -95,7 +141,7 @@ export default function FeedbackPage() {
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
-  }, []);
+  }, [feedbackData]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-GB', {

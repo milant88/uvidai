@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class CreateDatasetDto {
   @ApiProperty({ description: 'Dataset name' })

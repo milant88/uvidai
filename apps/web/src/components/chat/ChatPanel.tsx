@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useChatStore } from '@/store/chat-store';
+import { useT } from '@/store/locale-store';
 import { MessageBubble } from './MessageBubble';
 import { VoiceInput } from './VoiceInput';
 import styles from './ChatPanel.module.css';
 
 export function ChatPanel() {
+  const t = useT();
   const messages = useChatStore((s) => s.messages);
   const isLoading = useChatStore((s) => s.isLoading);
   const sendMessage = useChatStore((s) => s.sendMessage);
@@ -34,7 +36,7 @@ export function ChatPanel() {
     <div className={styles.panel}>
       {/* Header */}
       <div className={styles.header}>
-        <h2 className={styles.title}>Chat</h2>
+        <h2 className={styles.title}>{t('nav.chat')}</h2>
         {messages.length > 0 && (
           <button className={styles.clearBtn} onClick={clearChat} title="Obriši razgovor">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -54,10 +56,9 @@ export function ChatPanel() {
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <h3 className={styles.welcomeTitle}>Dobrodošli u UvidAI</h3>
+            <h3 className={styles.welcomeTitle}>UvidAI</h3>
             <p className={styles.welcomeText}>
-              Kako vam mogu pomoći? Pitajte me o bilo kojoj lokaciji u Beogradu
-              ili Novom Sadu&hellip;
+              {t('chat.greeting')}
             </p>
             <div className={styles.suggestions}>
               {[
@@ -110,7 +111,7 @@ export function ChatPanel() {
           className={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Postavite pitanje o lokaciji..."
+          placeholder={t('chat.placeholder')}
           disabled={isLoading}
           autoComplete="off"
         />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './VoiceInput.module.css';
 
 interface VoiceInputProps {
@@ -18,9 +18,13 @@ function getSpeechRecognition(): (new () => SpeechRecognition) | null {
 
 export function VoiceInput({ onTranscript, disabled = false, locale = 'sr-RS' }: VoiceInputProps) {
   const [state, setState] = useState<VoiceState>('idle');
+  const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const isSupported = typeof window !== 'undefined' && !!getSpeechRecognition();
+  // SpeechRecognition exists only in the browser — SSR/first paint must match (no hydration mismatch).
+  useEffect(() => {
+    setIsSupported(!!getSpeechRecognition());
+  }, []);
 
   const handleClick = useCallback(() => {
     if (!isSupported || disabled) return;

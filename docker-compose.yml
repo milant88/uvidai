@@ -1,86 +1,17 @@
-version: "3.9"
-
+# Local PostgreSQL for API + Prisma (matches .env.example DATABASE_URL)
 services:
   postgres:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.postgres
-    image: uvidai-postgres:local
+    image: postgres:16-alpine
     container_name: uvidai-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: uvidai
       POSTGRES_PASSWORD: uvidai_dev
       POSTGRES_DB: uvidai
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/01-extensions.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U uvidai -d uvidai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  redis:
-    image: redis:7-alpine
-    container_name: uvidai-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  meilisearch:
-    image: getmeili/meilisearch:latest
-    container_name: uvidai-meilisearch
-    restart: unless-stopped
-    ports:
-      - "7700:7700"
-    environment:
-      MEILI_MASTER_KEY: uvidai_dev_key
-      MEILI_ENV: development
-    volumes:
-      - meilisearch_data:/meili_data
-
-  langfuse:
-    image: langfuse/langfuse:latest
-    container_name: uvidai-langfuse
-    restart: unless-stopped
-    ports:
-      - "3100:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://uvidai:uvidai_dev@postgres:5432/langfuse
-      NEXTAUTH_SECRET: langfuse-dev-secret-change-in-prod
-      SALT: langfuse-dev-salt-change-in-prod
-      NEXTAUTH_URL: http://localhost:3100
-      TELEMETRY_ENABLED: "false"
-
-  litellm:
-    image: ghcr.io/berriai/litellm:main-latest
-    container_name: uvidai-litellm
-    restart: unless-stopped
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./docker/litellm_config.yaml:/app/config.yaml:ro
-    command: ["--config", "/app/config.yaml", "--port", "4000"]
-    environment:
-      LITELLM_MASTER_KEY: uvidai_dev_litellm_key
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-your-gemini-key}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-your-openai-key}
+      - uvidai_pgdata:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
-  redis_data:
-  meilisearch_data:
+  uvidai_pgdata:

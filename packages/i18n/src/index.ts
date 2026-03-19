@@ -4,7 +4,7 @@ const srCyrl = require('./locales/sr-Cyrl.json') as typeof import('./locales/en.
 const en = require('./locales/en.json') as typeof import('./locales/en.json');
 const ru = require('./locales/ru.json') as typeof import('./locales/en.json');
 
-export { latinToCyrillic, cyrillicToLatin, isCyrillic } from './transliterate.js';
+export { latinToCyrillic, cyrillicToLatin, isCyrillic } from './transliterate';
 
 // ---------------------------------------------------------------------------
 // Translation key types (derived from en.json structure)

@@ -16,7 +16,7 @@ import {
   ApiCreatedResponse,
   ApiParam,
 } from '@nestjs/swagger';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { FineTuneService } from './fine-tune.service';
 import { CreateDatasetDto } from './dto/create-dataset.dto';
 import { CreateDatasetItemDto } from './dto/create-dataset-item.dto';

@@ -39,6 +39,41 @@
   color: var(--accent);
 }
 
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface-secondary);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text-primary);
+}
+
+.tabActive {
+  background: var(--glass-bg);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
 .headerActions {
   display: flex;
   align-items: center;

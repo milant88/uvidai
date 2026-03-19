@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+import { apiV1 } from '@/lib/api';
 
 interface AbTest {
   id: string;
@@ -82,7 +81,7 @@ export default function AbTestsPage() {
 
   const fetchTests = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/ab-tests`);
+      const res = await fetch(apiV1('/ab-tests'));
       if (res.ok) {
         const json = await res.json();
         if (json.data?.length) setTests(json.data);
@@ -99,7 +98,7 @@ export default function AbTestsPage() {
   const handleCreate = useCallback(async () => {
     if (!createName.trim() || !createA.trim() || !createB.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/ab-tests`, {
+      const res = await fetch(apiV1('/ab-tests'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,7 +155,7 @@ export default function AbTestsPage() {
   const handleStatusChange = useCallback(
     async (id: string, status: 'active' | 'paused' | 'completed') => {
       try {
-        const res = await fetch(`${API_BASE}/ab-tests/${id}`, {
+        const res = await fetch(apiV1(`/ab-tests/${id}`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status }),

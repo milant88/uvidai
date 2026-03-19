@@ -94,6 +94,7 @@ export class AdminService {
             take: 1,
             orderBy: { createdAt: 'desc' },
           },
+          _count: { select: { messages: true } },
         },
       }),
       this.prisma.conversation.count({ where }),

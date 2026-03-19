@@ -1,7 +1,57 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { mockUnratedMessages, mockAdminRatings } from '@/lib/mock-data';
+import { mockUnratedMessages, mockAdminRatings, type UnratedMessage, type AdminRating } from '@/lib/mock-data';
+import { apiV1 } from '@/lib/api';
+
+function mapUnratedMessage(m: Record<string, unknown>): UnratedMessage {
+  const created = m.createdAt;
+  const createdAt =
+    typeof created === 'string'
+      ? created
+      : created instanceof Date
+        ? created.toISOString()
+        : '';
+
+  return {
+    id: String(m.id),
+    content: String(m.content),
+    conversationId: String(m.conversationId),
+    module: String(m.module ?? 'general'),
+    createdAt,
+  };
+}
+
+function mapApiAdminRating(r: Record<string, unknown>): AdminRating {
+  const acc = Number(r.accuracy ?? 0);
+  const comp = Number(r.completeness ?? 0);
+  const rel = Number(r.relevance ?? 0);
+  const tone = Number(r.tone ?? 0);
+  const overall = Math.round((acc + comp + rel + tone) / 4);
+  const created = r.createdAt;
+  const ratedAt =
+    typeof created === 'string'
+      ? created
+      : created instanceof Date
+        ? created.toISOString()
+        : '';
+
+  return {
+    id: String(r.id),
+    messageId: String(r.messageId),
+    accuracy: acc,
+    completeness: comp,
+    relevance: rel,
+    tone,
+    overall,
+    overallScore: overall,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+    idealResponse: String(r.idealResponseText ?? ''),
+    idealResponseText: String(r.idealResponseText ?? ''),
+    notes: r.notes != null ? String(r.notes) : undefined,
+    ratedAt,
+  };
+}
 
 const ALL_TAGS = [
   'accurate',
@@ -104,20 +154,54 @@ function ScoreButtonRow({
 }
 
 export default function RatingsPage() {
+  const [unratedMessages, setUnratedMessages] = useState<UnratedMessage[]>(mockUnratedMessages);
+  const [ratings, setRatings] = useState<AdminRating[]>(mockAdminRatings);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [form, setForm] = useState<RatingForm>({ ...emptyForm });
   const [savedCount, setSavedCount] = useState(0);
 
-  const totalUnrated = mockUnratedMessages.length;
-  const totalRated = mockAdminRatings.length + savedCount;
+  useEffect(() => {
+    async function load() {
+      try {
+        const [unratedRes, ratingsRes] = await Promise.all([
+          fetch(apiV1('/admin/ratings/unrated')),
+          fetch(apiV1('/admin/ratings')),
+        ]);
+        if (unratedRes.ok) {
+          const json = await unratedRes.json();
+          const data = json.data;
+          if (Array.isArray(data)) {
+            setUnratedMessages(
+              data.map((m) => mapUnratedMessage(m as Record<string, unknown>)),
+            );
+          }
+        }
+        if (ratingsRes.ok) {
+          const json = await ratingsRes.json();
+          const data = json.data;
+          if (Array.isArray(data)) {
+            setRatings(
+              data.map((row) => mapApiAdminRating(row as Record<string, unknown>)),
+            );
+          }
+        }
+      } catch {
+        // API unreachable — keep mock data
+      }
+    }
+    load();
+  }, []);
+
+  const totalUnrated = unratedMessages.length;
+  const totalRated = ratings.length + savedCount;
   const avgScore =
-    mockAdminRatings.length > 0
+    ratings.length > 0
       ? (
-          mockAdminRatings.reduce((s, r) => s + r.overall, 0) /
-          mockAdminRatings.length
+          ratings.reduce((s, r) => s + (r.overall ?? r.overallScore ?? 0), 0) /
+          ratings.length
         ).toFixed(1)
       : '—';
-  const currentMessage = mockUnratedMessages[currentIndex];
+  const currentMessage = unratedMessages[currentIndex];
   const isFinished = currentIndex >= totalUnrated;
 
   const handleSkip = useCallback(() => {
